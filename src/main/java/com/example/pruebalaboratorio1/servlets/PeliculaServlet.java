@@ -24,17 +24,19 @@ public class PeliculaServlet extends HttpServlet {
 
         String action = request.getParameter("action");
         peliculaDao peliculaDao = new peliculaDao();
-        //listasDao listaDao = new listasDao();
+        listasDao listaDao = new listasDao();
         //ArrayList<genero> listaGeneros = listaDao.listarGeneros();
         //ArrayList<streaming> listaStreaming = listaDao.listarStraming();
 
         switch (action) {
             case "listar":
-
-
-
                 ArrayList<pelicula> listaPeliculas = peliculaDao.listarPeliculas();
+                ArrayList<genero> listaGeneros = listaDao.listarGeneros();
+                ArrayList<streaming> listaStreaming = listaDao.listarStreaming();
+
                 request.setAttribute("listaPeliculas", listaPeliculas);
+                request.setAttribute("listaGeneros", listaGeneros);
+                request.setAttribute("listaStreaming", listaStreaming);
 
                 RequestDispatcher view = request.getRequestDispatcher("listaPeliculas.jsp");
                 view.forward(request,response);
@@ -53,14 +55,37 @@ public class PeliculaServlet extends HttpServlet {
 
         String action = request.getParameter("action");
         peliculaDao peliculaDao = new peliculaDao();
-        //listasDao listaDao = new listasDao();
+        int idPelicula;
+        listasDao listaDao = new listasDao();
         //ArrayList<genero> listaGeneros = listaDao.listarGeneros();
         //ArrayList<streaming> listaStreaming = listaDao.listarStraming();
 
         switch (action) {
 
-
             case "filtrar":
+                String idGeneroStr = request.getParameter("genero");
+                String idStreamingStr = request.getParameter("streaming");
+                int idGenero = 0;
+                int idStreaming = 0;
+
+                if (idGeneroStr != null && !idGeneroStr.trim().isEmpty()) {
+                    idGenero = Integer.parseInt(idGeneroStr);
+                }
+
+                if (idStreamingStr != null && !idStreamingStr.trim().isEmpty()) {
+                    idStreaming = Integer.parseInt(idStreamingStr);
+                }
+
+
+                ArrayList<pelicula> listaPeliculasFiltradas = peliculaDao.listarPeliculasFiltradas(idGenero, idStreaming);
+                ArrayList<genero> listaGeneros = listaDao.listarGeneros();
+                ArrayList<streaming> listaStreaming = listaDao.listarStreaming();
+
+                request.setAttribute("listaPeliculas", listaPeliculasFiltradas);
+                request.setAttribute("listaGeneros", listaGeneros);
+                request.setAttribute("listaStreaming", listaStreaming);
+                request.setAttribute("generoSeleccionado", idGenero);
+                request.setAttribute("streamingSeleccionado", idStreaming);
 
                 RequestDispatcher viewFiltro = request.getRequestDispatcher("listaPeliculas.jsp");
                 viewFiltro.forward(request,response);
@@ -69,16 +94,24 @@ public class PeliculaServlet extends HttpServlet {
             case "editar":
 
 
-                int idPelicula = Integer.parseInt(request.getParameter("idPelicula"));
+                idPelicula = Integer.parseInt(request.getParameter("idPelicula"));
                 String titulo = request.getParameter("titulo");
                 String director = request.getParameter("director");
                 int anoPublicacion = Integer.parseInt(request.getParameter("anoPublicacion"));
                 double rating = Double.parseDouble(request.getParameter("rating"));
                 double boxOffice = Double.parseDouble(request.getParameter("boxOffice"));
-                String genero = request.getParameter("genero");
+                idGenero = Integer.parseInt(request.getParameter("genero"));
+                idStreaming = Integer.parseInt(request.getParameter("streaming"));
 
-                peliculaDao.editarPelicula(idPelicula, titulo,director,anoPublicacion,rating,boxOffice);
+                peliculaDao.editarPelicula(idPelicula, titulo, director, anoPublicacion, rating, boxOffice, idGenero, idStreaming);
                 response.sendRedirect(request.getContextPath()+"/listaPeliculas?action=listar");
+                break;
+
+            case "borrar":
+
+                idPelicula = Integer.parseInt(request.getParameter("idPelicula"));
+                peliculaDao.borrarPelicula(idPelicula);
+                response.sendRedirect(request.getContextPath() + "/listaPeliculas?action=listar&message=peliculaBorrada");
                 break;
 
 

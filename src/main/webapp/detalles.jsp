@@ -7,10 +7,8 @@
 <%
 
     pelicula movie = (pelicula) request.getAttribute("pelicula");
-    String searchTerm = request.getParameter("searchTerm");
-    NumberFormat formatter = NumberFormat.getInstance();
-    //ArrayList<genero> listaGeneros = (ArrayList) request.getAttribute("listaGeneros");
-    //ArrayList<streaming> listaStreaming = (ArrayList) request.getAttribute("listaStreaming");
+    ArrayList<genero> listaGeneros = (ArrayList<genero>) request.getAttribute("listaGeneros");
+    ArrayList<streaming> listaStreaming = (ArrayList<streaming>) request.getAttribute("listaStreaming");
 %>
 <!DOCTYPE html>
 <html>
@@ -58,8 +56,26 @@
         </tr>
         <tr>
             <th>Genero</th>
-            <td contenteditable>
-                <input name="Genero" value="<%=movie.getGenero()%>">
+            <td>
+                <select name="genero">
+                    <% for (genero gen : listaGeneros) { %>
+                    <option value="<%= gen.getIdGenero() %>" <%= movie.getGenero().getIdGenero() == gen.getIdGenero() ? "selected" : "" %>>
+                        <%= gen.getNombre() %>
+                    </option>
+                    <% } %>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th>Streaming</th>
+            <td>
+                <select name="streaming">
+                    <% for (streaming str : listaStreaming) { %>
+                    <option value="<%= str.getIdStreaming() %>" <%= movie.getStreaming() != null && movie.getStreaming().getIdStreaming() == str.getIdStreaming() ? "selected" : "" %>>
+                        <%= str.getNombreServicio() %>
+                    </option>
+                    <% } %>
+                </select>
             </td>
         </tr>
         <tr>
@@ -70,7 +86,6 @@
         <button type="submit">Editar Pelicula</button>
     </form>
 </table>
-
 
 </body>
 </html>

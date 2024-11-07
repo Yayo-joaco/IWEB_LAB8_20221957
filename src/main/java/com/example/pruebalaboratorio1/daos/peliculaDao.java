@@ -13,18 +13,7 @@ public class peliculaDao extends baseDao{
 
         ArrayList<pelicula> listaPeliculas = new ArrayList<>();
 
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-
-        String url = "jdbc:mysql://localhost:3306/mydb?serverTimezone=America/Lima";
-        String username = "root";
-        String password = "root";
-
-        try {
-            Connection conn = DriverManager.getConnection(url, username, password);
+        try(Connection conn = getConnection()){
             Statement stmt = conn.createStatement();
 
             String sql = "SELECT A.*, B.NOMBRE, C.NOMBRESERVICIO FROM  \n" +
@@ -58,11 +47,18 @@ public class peliculaDao extends baseDao{
                 movie.setBoxOffice(boxOffice);
                 int idGenero = rs.getInt("idGenero");
                 String nombregenero = rs.getString("nombre");
-                movie.setGenero(nombregenero);
-
-
-                //boolean validador= validarBorrado(movie);
-                //movie.setValidadorBorrado(validador);
+                genero.setIdGenero(idGenero);
+                genero.setNombre(nombregenero);
+                movie.setGenero(genero);
+                String duracion = rs.getString("duracion");
+                movie.setDuracion(duracion);
+                String nombreStreaming = rs.getString("nombreServicio");
+                streaming.setNombreServicio(nombreStreaming);
+                movie.setStreaming(streaming);
+                boolean premioOscar = rs.getBoolean("premioOscar");
+                movie.setPremioOscar(premioOscar);
+                boolean validador= validarBorrado(movie);
+                movie.setValidadorBorrado(validador);
 
                 listaPeliculas.add(movie);
 
@@ -79,45 +75,97 @@ public class peliculaDao extends baseDao{
 
         ArrayList<pelicula> listaPeliculasFiltradas= new ArrayList<>();
 
+        String sql = "SELECT A.*, B.NOMBRE, C.NOMBRESERVICIO " +
+                "FROM PELICULA A " +
+                "INNER JOIN GENERO B ON A.IDGENERO = B.IDGENERO " +
+                "INNER JOIN STREAMING C ON A.IDSTREAMING = C.IDSTREAMING " +
+                "WHERE 1=1 ";
 
-        return listaPeliculasFiltradas;
-    }
+        if (idGenero != 0) {
+            sql += "AND A.IDGENERO = " + idGenero + " ";
+        }
+        if (idStreaming != 0) {
+            sql += "AND A.IDSTREAMING = " + idStreaming + " ";
+        }
 
-    // AGREGAR CAMPOS FALTANTES (GENERO, STREAMING)
-    public void editarPelicula(int idPelicula, String titulo, String director, int anoPublicacion, double rating, double boxOffice){
-        try {
-            String url = "jdbc:mysql://localhost:3306/mydb?serverTimezone=America/Lima";
-            String username = "root";
-            String password = "root";
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery(sql);
 
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            try (Connection conn = DriverManager.getConnection(url, username, password);) {
-                String sql = "UPDATE PELICULA SET titulo = ?, director = ?, anoPublicacion = ? ," +
-                        "rating = ?, boxOffice = ? WHERE IDPELICULA = ?";
-                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                    pstmt.setString(1, titulo);
-                    pstmt.setString(2, director);
-                    pstmt.setInt(3, anoPublicacion);
-                    pstmt.setDouble(4, rating);
-                    pstmt.setDouble(5, boxOffice);
-                    pstmt.setInt(6, idPelicula);
-                    pstmt.executeUpdate();
-                }
+            while (rs.next()) {
+                pelicula movie = new pelicula();
+                genero gen = new genero();
+                streaming stream = new streaming();
+
+                movie.setIdPelicula(rs.getInt("IDPELICULA"));
+                movie.setTitulo(rs.getString("TITULO"));
+                movie.setDirector(rs.getString("DIRECTOR"));
+                movie.setAnoPublicacion(rs.getInt("ANOPUBLICACION"));
+                movie.setRating(rs.getDouble("RATING"));
+                movie.setBoxOffice(rs.getDouble("BOXOFFICE"));
+                gen.setIdGenero(rs.getInt("IDGENERO"));
+                gen.setNombre(rs.getString("NOMBRE"));
+                movie.setGenero(gen);
+                movie.setDuracion(rs.getString("DURACION"));
+                stream.setNombreServicio(rs.getString("NOMBRESERVICIO"));
+                movie.setStreaming(stream);
+                movie.setPremioOscar(rs.getBoolean("PREMIOOSCAR"));
+                movie.setValidadorBorrado(validarBorrado(movie));
+
+                listaPeliculasFiltradas.add(movie);
             }
-        } catch (SQLException | ClassNotFoundException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
 
 
+        return listaPeliculasFiltradas;
+    }
+
+    public void editarPelicula(int idPelicula, String titulo, String director, int anoPublicacion, double rating, double boxOffice, int idGenero, int idStreaming) {
+        String sql = "UPDATE pelicula SET titulo = ?, director = ?, anoPublicacion = ?, rating = ?, boxOffice = ?, idGenero = ?, idStreaming = ? WHERE idPelicula = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, titulo);
+            stmt.setString(2, director);
+            stmt.setInt(3, anoPublicacion);
+            stmt.setDouble(4, rating);
+            stmt.setDouble(5, boxOffice);
+            stmt.setInt(6, idGenero);
+            stmt.setInt(7, idStreaming);
+            stmt.setInt(8, idPelicula);
+
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
     public void borrarPelicula(int idPelicula) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
 
-        // NOTA: PARA BORRAR UNA PELICULA CORRECTAMENTE NO OLVIDAR PRIMERO BORRARLA DE LA TABLA PROTAGONSITAS
+            // Eliminar de la tabla protagonistas
+            String sqlProtagonistas = "DELETE FROM PROTAGONISTAS WHERE IDPELICULA = ?";
+            try (PreparedStatement pstmtProtagonistas = conn.prepareStatement(sqlProtagonistas)) {
+                pstmtProtagonistas.setInt(1, idPelicula);
+                pstmtProtagonistas.executeUpdate();
+            }
 
+            // Eliminar de la tabla peliculas
+            String sqlPelicula = "DELETE FROM PELICULA WHERE IDPELICULA = ?";
+            try (PreparedStatement pstmtPelicula = conn.prepareStatement(sqlPelicula)) {
+                pstmtPelicula.setInt(1, idPelicula);
+                pstmtPelicula.executeUpdate();
+            }
 
+            conn.commit();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
-
-
 }

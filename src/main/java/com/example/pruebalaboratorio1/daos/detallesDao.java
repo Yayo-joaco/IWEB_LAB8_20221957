@@ -2,9 +2,9 @@ package com.example.pruebalaboratorio1.daos;
 
 import com.example.pruebalaboratorio1.beans.genero;
 import com.example.pruebalaboratorio1.beans.pelicula;
+import com.example.pruebalaboratorio1.beans.streaming;
 
 import java.sql.*;
-import java.util.ArrayList;
 
 public class detallesDao {
 
@@ -21,45 +21,42 @@ public class detallesDao {
         String username = "root";
         String password = "root";
 
-        try {
-            Connection conn = DriverManager.getConnection(url, username, password);
-            Statement stmt = conn.createStatement();
+        try (Connection conn = DriverManager.getConnection(url, username, password);
+             Statement stmt = conn.createStatement()) {
 
-            String sql = "SELECT A.*, B.NOMBRE FROM \n" +
-                    "(SELECT * FROM PELICULA WHERE IDPELICULA = \n" +
-                     idPelicula +
-                    ") AS A \n" +
-                    "INNER JOIN \n" +
-                    "(SELECT * FROM GENERO) AS B\n" +
-                    "ON A.IDGENERO = B.IDGENERO";
-            // hacer el join con el genero y pedir que se haga por rating desc
-            // agregar buscador
+            String sql = "SELECT P.*, G.IDGENERO, G.NOMBRE AS GENERO_NOMBRE, S.IDSTREAMING, S.NOMBRESERVICIO AS STREAMING_NOMBRE " +
+                    "FROM PELICULA P " +
+                    "INNER JOIN GENERO G ON P.IDGENERO = G.IDGENERO " +
+                    "LEFT JOIN STREAMING S ON P.IDSTREAMING = S.IDSTREAMING " +
+                    "WHERE P.IDPELICULA = ?";
 
-            ResultSet rs = stmt.executeQuery(sql);
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setInt(1, idPelicula);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        movie.setIdPelicula(rs.getInt("IDPELICULA"));
+                        movie.setTitulo(rs.getString("titulo"));
+                        movie.setDirector(rs.getString("director"));
+                        movie.setAnoPublicacion(rs.getInt("anoPublicacion"));
+                        movie.setRating(rs.getDouble("rating"));
+                        movie.setBoxOffice(rs.getDouble("boxOffice"));
 
+                        genero generoPelicula = new genero();
+                        generoPelicula.setIdGenero(rs.getInt("IDGENERO"));
+                        generoPelicula.setNombre(rs.getString("GENERO_NOMBRE"));
+                        movie.setGenero(generoPelicula);
 
-            while (rs.next()) {
-
-                genero genero = new genero();
-
-                int id = rs.getInt(1);
-                movie.setIdPelicula(id);
-                String titulo = rs.getString("titulo");
-                movie.setTitulo(titulo);
-                String director = rs.getString("director");
-                movie.setDirector(director);
-                int anoPublicacion = rs.getInt("anoPublicacion");
-                movie.setAnoPublicacion(anoPublicacion);
-                double rating = rs.getDouble("rating");
-                movie.setRating(rating);
-                double boxOffice = rs.getDouble("boxOffice");
-                movie.setBoxOffice(boxOffice);
-
-                String nombregenero = rs.getString("nombre");
-                movie.setGenero(nombregenero);
-
-
-
+                        int idStreaming = rs.getInt("IDSTREAMING");
+                        if (idStreaming != 0) {
+                            streaming streamingPelicula = new streaming();
+                            streamingPelicula.setIdStreaming(idStreaming);
+                            streamingPelicula.setNombreServicio(rs.getString("STREAMING_NOMBRE"));
+                            movie.setStreaming(streamingPelicula);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
 
         } catch (SQLException e) {

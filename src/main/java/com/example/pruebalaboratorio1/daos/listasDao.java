@@ -10,17 +10,47 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
-public class listasDao {
+public class listasDao extends baseDao{
 
     public ArrayList<genero> listarGeneros() {
 
         ArrayList<genero> listaGeneros = new ArrayList<>();
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            String sql = "SELECT * FROM GENERO";
+            ResultSet rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                genero gen = new genero();
+                gen.setIdGenero(rs.getInt("IDGENERO"));
+                gen.setNombre(rs.getString("NOMBRE"));
+                listaGeneros.add(gen);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         return listaGeneros;
     }
 
-    public ArrayList<streaming> listarStraming() {
+    public ArrayList<streaming> listarStreaming() {
 
         ArrayList<streaming> listaStreaming = new ArrayList<>();
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            String sql = "SELECT * FROM STREAMING";
+            ResultSet rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                streaming stream = new streaming();
+                stream.setIdStreaming(rs.getInt("IDSTREAMING"));
+                stream.setNombreServicio(rs.getString("NOMBRESERVICIO"));
+                listaStreaming.add(stream);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         return listaStreaming;
     }
 }

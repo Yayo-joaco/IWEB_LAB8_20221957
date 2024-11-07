@@ -22,16 +22,18 @@ public class DetallesServlet extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         response.setContentType("text/html");
 
-        //listasDao listaDao = new listasDao();
-        //ArrayList<genero> listaGeneros = listaDao.listarGeneros();
-        //ArrayList<streaming> listaStreaming = listaDao.listarStraming();
-        //request.setAttribute("listaGeneros", listaGeneros);
-        //request.setAttribute("listaStreaming", listaStreaming);
 
         int idPelicula = Integer.parseInt(request.getParameter("idPelicula"));
         detallesDao detallesDao = new detallesDao();
+        listasDao listaDao = new listasDao();
+
         pelicula movie = detallesDao.obtenerPelicula(idPelicula);
+        ArrayList<genero> listaGeneros = listaDao.listarGeneros();
+        ArrayList<streaming> listaStreaming = listaDao.listarStreaming();
+
         request.setAttribute("pelicula", movie);
+        request.setAttribute("listaGeneros", listaGeneros);
+        request.setAttribute("listaStreaming", listaStreaming);
 
         RequestDispatcher view = request.getRequestDispatcher("detalles.jsp");
         view.forward(request,response);
